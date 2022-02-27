@@ -1,0 +1,23 @@
+{
+  "name": "teensy-opus",
+  "version": "1.2.1",
+  "frameworks": "*",
+  "platforms": "teensy",
+  "build": {
+    "flags": [
+      "-D OPUS_BUILD",
+      "-D FIXED_POINT",
+      "-D OVERRIDE_OPUS_ALLOC",
+      "-D OVERRIDE_OPUS_FREE",
+      "-D VAR_ARRAYS",
+      "-D HAVE_CONFIG_H",
+      "-D OVERRIDE_OPUS_ALLOC_SCRATCH",
+      "-D DISABLE_FLOAT_API",
+      "-D OPUS_ARM_INLINE_EDSP",
+      "-D EMBEDDED_ARM",
+      "-D OPUS_ARM_ASM",
+      "-Dopus_alloc\\\\(x\\\\)=NULL",
+      "-Dopus_free\\\\(x\\\\)=NULL"
+    ]
+  }
+}

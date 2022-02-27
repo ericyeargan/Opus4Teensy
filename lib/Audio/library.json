@@ -1,0 +1,5 @@
+{
+  "name": "teensy-opus-audiostream",
+  "frameworks": "*",
+  "platforms": "teensy"
+}
