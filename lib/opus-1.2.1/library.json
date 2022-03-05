@@ -16,6 +16,8 @@
       "-D OPUS_ARM_INLINE_EDSP",
       "-D EMBEDDED_ARM",
       "-D OPUS_ARM_ASM",
+      "-D HAVE_LRINT",
+      "-D HAVE_LRINTF",
       "-Dopus_alloc\\\\(x\\\\)=NULL",
       "-Dopus_free\\\\(x\\\\)=NULL"
     ]
