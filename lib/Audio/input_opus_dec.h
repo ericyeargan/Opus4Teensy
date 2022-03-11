@@ -44,7 +44,7 @@ public:
 	void begin(void);
 	virtual void update(void);
 	void initialise(void);
-	int32_t putData(uint8_t* compressedBuffer, int32_t bufferSize);
+	int32_t putData(const uint8_t *compressedBuffer, size_t bufferSize);
 
 	static uint8_t m_opus_decoder[9224];
 	static OpusDecoder * m_opus_decoder_state;

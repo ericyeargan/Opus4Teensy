@@ -22,7 +22,6 @@
 //  <24000=>24 kHz
 //  <32000=>32 kHz
 //  <48000=>48 kHz
-#define CONFIG_AUDIO_SAMPLING_FREQUENCY 48000
 
 // <o> Bit Rate
 // <i> CBR - Constant Bit Rate allows you to set a specific bit rate that remains the same throughout the transmission.
@@ -45,15 +44,5 @@
 // <i> A number from range 0-10. Higher complexity assures better quality but also higher CPU and memory resources consumption.
 #define CONFIG_OPUS_COMPLEXITY 10 // Default
 
-// <o> Audio Frame Size - Must be value below!
-// <i> CELT supports 5 ms - 40 ms audio frames. SILK provides support for 10 ms - 60 ms frame sizes.
-//  <5=>5 ms
-//  <10=>10 ms
-//  <20=>20 ms
-//  <40=>40 ms
-//  <60=>60 ms
-//#define CONFIG_AUDIO_FRAME_SIZE_MS 20
-# define CONFIG_AUDIO_FRAME_SIZE_SAMPLES   (CONFIG_AUDIO_SAMPLING_FREQUENCY / 50)  // 20mS
-
 // Calculate audio parameters.
-# define CONFIG_AUDIO_FRAME_SIZE_BYTES         (CONFIG_AUDIO_FRAME_SIZE_SAMPLES * CONFIG_OPUS_BITRATE) / (8 * CONFIG_AUDIO_SAMPLING_FREQUENCY)
+# define CONFIG_AUDIO_FRAME_SIZE_BYTES         (AUDIO_BLOCK_SAMPLES * CONFIG_OPUS_BITRATE) / (8 * static_cast<unsigned>(AUDIO_SAMPLE_RATE))

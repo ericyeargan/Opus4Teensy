@@ -9,7 +9,7 @@ uint8_t AudioInputOpusDec::m_opus_decoder[9224];
 OpusDecoder * AudioInputOpusDec::m_opus_decoder_state = NULL;
 
 uint8_t AudioInputOpusDec::decoder_frame_buf_compressed[CONFIG_AUDIO_FRAME_SIZE_BYTES];
-int32_t AudioInputOpusDec::decoder_decompressed_frame_size = CONFIG_AUDIO_FRAME_SIZE_SAMPLES;
+int32_t AudioInputOpusDec::decoder_decompressed_frame_size = AUDIO_BLOCK_SAMPLES;
 int32_t AudioInputOpusDec::decoder_compressed_frame_size = CONFIG_AUDIO_FRAME_SIZE_BYTES;
 bool AudioInputOpusDec::decoderInitialised = false;
 elapsedMicros AudioInputOpusDec::inputPacketPhase;
@@ -22,7 +22,7 @@ void AudioInputOpusDec::begin(void)
 
 void AudioInputOpusDec::initialise(void)
 {
-	opus_decoder_init(m_opus_decoder_state, CONFIG_AUDIO_SAMPLING_FREQUENCY, 1);
+	opus_decoder_init(m_opus_decoder_state, AUDIO_SAMPLE_RATE, 1);
 	decoderInitialised = true;
 }
 
@@ -33,7 +33,7 @@ void AudioInputOpusDec::initialise(void)
 // ...
 // phase = opusDecoder.putData(opusBuffer, opusBufSize);   
 // CCM_ANALOG_PLL_AUDIO_DENOM = (denominator + (phase/100) - 100);
-int32_t AudioInputOpusDec::putData(uint8_t* compressedBuffer, int32_t bufferSize)
+int32_t AudioInputOpusDec::putData(const uint8_t *compressedBuffer, size_t bufferSize)
 {
 	__disable_irq();
 	memcpy(decoder_frame_buf_compressed, compressedBuffer, bufferSize);
@@ -50,7 +50,7 @@ void AudioInputOpusDec::update(void)
 	if (block) {
 		if(decoderInitialised)
 		{
-			decoder_decompressed_frame_size = opus_decode(m_opus_decoder_state, decoder_frame_buf_compressed, decoder_compressed_frame_size, block->data, CONFIG_AUDIO_FRAME_SIZE_SAMPLES, 0);
+			decoder_decompressed_frame_size = opus_decode(m_opus_decoder_state, decoder_frame_buf_compressed, decoder_compressed_frame_size, block->data, AUDIO_BLOCK_SAMPLES, 0);
 			//Serial.printf(" %d", decoder_decompressed_frame_size);
 		}
 		transmit(block);
