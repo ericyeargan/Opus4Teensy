@@ -36,27 +36,18 @@
 #include "AudioStream.h"
 #include "opus.h"
 #include "config.h"
-#include "../common/frame_queue.h"
+
+#include "../common/frame_sink.h"
 
 class AudioOutputOpusEnc : public AudioStream {
 public:
     static constexpr size_t OPUS_ENCODER_CHANNEL_COUNT = 2;
-    static constexpr size_t OPUS_ENCODER_MAX_FRAME_SIZE = 250;
-    static constexpr size_t OPUS_ENCODER_QUEUE_LENGTH = 4;
 
-    using EncodeQueue = FrameQueue<OPUS_ENCODER_QUEUE_LENGTH, OPUS_ENCODER_MAX_FRAME_SIZE>;
-
-    AudioOutputOpusEnc();
+    explicit AudioOutputOpusEnc(FrameSink *frameSink);
 
     void setComplexity(uint8_t complexity);
 
     void setBitrate(uint32_t bitrate);
-
-    int available() { return mEncodeQueue.available(); }
-
-    bool readEncodedFrame(EncodeQueue::ReadFrameFunction const &readFunction) {
-        return mEncodeQueue.readFrame(readFunction);
-    }
 
     void update() override;
 
@@ -65,7 +56,7 @@ protected:
 private:
     static constexpr size_t OPUS_ENCODER_SIZE = 7180;
 
-    EncodeQueue mEncodeQueue;
+    FrameSink * const mFrameSink;
 
     std::array<uint8_t, OPUS_ENCODER_SIZE> mOpusEncoderData{};
     OpusEncoder *mEncoderState;

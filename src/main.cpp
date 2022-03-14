@@ -9,11 +9,14 @@
 
 #include <input_opus_dec.h>
 #include <output_opus_enc.h>
+#include <frame_queue.h>
 
 AudioControlSGTL5000    sgtl5000_1;
 AudioInputI2S           i2s_in;
 AudioOutputI2S          i2s_out;
-AudioOutputOpusEnc      opusEncoder;  // Create Opus Encoder
+
+FrameQueue<4, 256>      encodedFrameQueue;
+AudioOutputOpusEnc      opusEncoder(&encodedFrameQueue);  // Create Opus Encoder
 AudioInputOpusDec       opusDecoder;  // Create Opus Decoder
 AudioConnection         patchCord1(i2s_in, 0, opusEncoder, 0);
 AudioConnection         patchCord2(opusDecoder, 0, i2s_out, 0);
@@ -31,8 +34,7 @@ void setup()
 
 void loop()
 {
-  opusEncoder.readEncodedFrame([&](uint8_t const *data, size_t length) {
+    encodedFrameQueue.readFrame([&](uint8_t const *data, size_t length) {
       opusDecoder.putData(data, length); // Write the buffer to the decoder (loopback)
   });
-
 }

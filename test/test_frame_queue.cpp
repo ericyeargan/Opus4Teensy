@@ -1,16 +1,23 @@
 #include <unity.h>
+#include <unity_fixture_stubs.h>
 #include <cstring>
 
 #include "frame_queue.h"
 
-void testStaticMethods() {
+static void testQueueLength() {
     using Queue = FrameQueue<2, 4>;
 
     TEST_ASSERT_EQUAL(2, Queue::queueLength());
-    TEST_ASSERT_EQUAL(4, Queue::maxFrameSize());
 }
 
-void testReadReturnsFalseOnEmpty() {
+static void testFrameSize() {
+    using Queue = FrameQueue<2, 4>;
+    Queue queue;
+
+    TEST_ASSERT_EQUAL(4, queue.getMaxFrameSize());
+}
+
+static void testReadReturnsFalseOnEmpty() {
     using Queue = FrameQueue<2, 4>;
     Queue queue;
 
@@ -26,7 +33,7 @@ void testReadReturnsFalseOnEmpty() {
     }));
 }
 
-void testReadReturnsTrueOnNonEmpty() {
+static void testReadReturnsTrueOnNonEmpty() {
     using Queue = FrameQueue<2, 4>;
     Queue queue;
 
@@ -38,7 +45,7 @@ void testReadReturnsTrueOnNonEmpty() {
     }));
 }
 
-void testWriteReturnsTrueOnNonFull() {
+static void testWriteReturnsTrueOnNonFull() {
     using Queue = FrameQueue<2, 4>;
     Queue queue;
 
@@ -47,7 +54,7 @@ void testWriteReturnsTrueOnNonFull() {
     }));
 }
 
-void testWriteReturnsFalseOnFull() {
+static void testWriteReturnsFalseOnFull() {
     using Queue = FrameQueue<1, 4>;
     Queue queue;
 
@@ -61,7 +68,7 @@ void testWriteReturnsFalseOnFull() {
     }));
 }
 
-void testReadCallsFunction() {
+static void testReadCallsFunction() {
     using Queue = FrameQueue<2, 4>;
     Queue queue;
 
@@ -77,7 +84,7 @@ void testReadCallsFunction() {
     TEST_ASSERT_TRUE(called);
 }
 
-void testSequentialWriteRead() {
+static void testSequentialWriteRead() {
     using Queue = FrameQueue<2, 4>;
     Queue queue;
 
@@ -100,7 +107,7 @@ void testSequentialWriteRead() {
     }
 }
 
-void testInterleavedWriteRead() {
+static void testInterleavedWriteRead() {
     using Queue = FrameQueue<2, 4>;
     Queue queue;
 
@@ -119,9 +126,10 @@ void testInterleavedWriteRead() {
     }
 }
 
-void process() {
+void runFrameQueueTests() {
     UNITY_BEGIN();
-    RUN_TEST(testStaticMethods);
+    RUN_TEST(testQueueLength);
+    RUN_TEST(testFrameSize);
     RUN_TEST(testReadReturnsFalseOnEmpty);
     RUN_TEST(testReadReturnsTrueOnNonEmpty);
     RUN_TEST(testWriteReturnsTrueOnNonFull);
@@ -130,9 +138,4 @@ void process() {
     RUN_TEST(testSequentialWriteRead);
     RUN_TEST(testInterleavedWriteRead);
     UNITY_END();
-}
-
-int main(int argc, char **argv) {
-    process();
-    return 0;
 }

@@ -8,7 +8,9 @@
 #include "opus.h"
 #include "config.h"
 
-AudioOutputOpusEnc::AudioOutputOpusEnc() : AudioStream(OPUS_ENCODER_CHANNEL_COUNT, mInputQueueArray) {
+AudioOutputOpusEnc::AudioOutputOpusEnc(FrameSink *frameSink)
+        : AudioStream(OPUS_ENCODER_CHANNEL_COUNT, mInputQueueArray)
+        , mFrameSink(frameSink) {
     assert(static_cast<size_t>(opus_encoder_get_size(OPUS_ENCODER_CHANNEL_COUNT)) == mOpusEncoderData.size());
     mEncoderState = reinterpret_cast<OpusEncoder *>(mOpusEncoderData.data());
 
@@ -47,13 +49,13 @@ void AudioOutputOpusEnc::update() {
     if (leftInput && rightInput) {
         memcpy_tointerleaveLR(mInputBuffer.data(), leftInput->data, rightInput->data);
 
-        mEncodeQueue.writeFrame([this](uint8_t *data) -> size_t {
+        mFrameSink->writeFrame([this](uint8_t *data) -> size_t {
             auto compressedFrameSize = opus_encode(mEncoderState, mInputBuffer.data(), AUDIO_BLOCK_SAMPLES,
                                                    data,
-                                                   static_cast<opus_int32>(EncodeQueue::maxFrameSize()));
+                                                   static_cast<opus_int32>(mFrameSink->getMaxFrameSize()));
 
             assert(compressedFrameSize > 0);
-            assert(static_cast<size_t>(compressedFrameSize) <= EncodeQueue::maxFrameSize());
+            assert(static_cast<size_t>(compressedFrameSize) <= mFrameSink->getMaxFrameSize());
 
             return compressedFrameSize;
         });

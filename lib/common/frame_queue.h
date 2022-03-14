@@ -4,11 +4,11 @@
 #include <functional>
 #include <array>
 
-template<std::size_t QueueLength, std::size_t MaxFrameSize>
-class FrameQueue {
-public:
-    static size_t maxFrameSize() { return MaxFrameSize; }
+#include "frame_sink.h"
 
+template<std::size_t QueueLength, std::size_t MaxFrameSize>
+class FrameQueue : public FrameSink {
+public:
     static size_t queueLength() { return QueueLength; }
 
     int available() {
@@ -32,12 +32,7 @@ public:
         return true;
     }
 
-    /*!
-     * Writes a frame to buffer data and returns the frame size
-     */
-    using WriteFrameFunction = std::function<size_t(uint8_t *data)>;
-
-    bool writeFrame(WriteFrameFunction const &writeFunction) {
+    bool writeFrame(WriteFrameFunction const &writeFunction) override {
         if (mAvailable >= mQueue.size()) {
             return false;
         }
@@ -51,6 +46,8 @@ public:
 
         return true;
     }
+
+    size_t getMaxFrameSize() override { return MaxFrameSize; }
 
 private:
     using Buffer = std::array<uint8_t, MaxFrameSize>;
