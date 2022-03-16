@@ -40,6 +40,8 @@
 //
 #define CONFIG_OPUS_BITRATE 64000 // Max bitrate - used to calc compressed buffer size
 
+#define CONFIG_OPUS_CHANNEL_COUNT 2
+
 // <o> Complexity <0-10>
 // <i> A number from range 0-10. Higher complexity assures better quality but also higher CPU and memory resources consumption.
 #define CONFIG_OPUS_COMPLEXITY 10 // Default

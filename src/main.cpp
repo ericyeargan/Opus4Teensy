@@ -11,30 +11,24 @@
 #include <output_opus_enc.h>
 #include <frame_queue.h>
 
-AudioControlSGTL5000    sgtl5000_1;
-AudioInputI2S           i2s_in;
-AudioOutputI2S          i2s_out;
+AudioControlSGTL5000 sgtl5000_1;
+AudioInputI2S i2s_in;
+AudioOutputI2S i2s_out;
 
-FrameQueue<4, 256>      encodedFrameQueue;
-AudioOutputOpusEnc      opusEncoder(&encodedFrameQueue);  // Create Opus Encoder
-AudioInputOpusDec       opusDecoder;  // Create Opus Decoder
-AudioConnection         patchCord1(i2s_in, 0, opusEncoder, 0);
-AudioConnection         patchCord2(opusDecoder, 0, i2s_out, 0);
-AudioConnection         patchCord3(opusDecoder, 0, i2s_out, 1);
+FrameQueue<4, 256> encodedFrameQueue;
+AudioOutputOpusEnc opusEncoder(&encodedFrameQueue);  // Create Opus Encoder
+AudioInputOpusDec opusDecoder(&encodedFrameQueue);  // Create Opus Decoder
+AudioConnection patchCord1(i2s_in, 0, opusEncoder, 0);
+AudioConnection patchCord2(opusDecoder, 0, i2s_out, 0);
+AudioConnection patchCord3(opusDecoder, 0, i2s_out, 1);
 
-void setup()
-{  
-  AudioMemory(10);
-  sgtl5000_1.enable();  
-  sgtl5000_1.inputSelect(AUDIO_INPUT_MIC);
-  sgtl5000_1.volume(0.5);
-  //opusEncoder.setBitrate(16000); // Default is 64000
-  opusDecoder.initialise();
+void setup() {
+    AudioMemory(10);
+    sgtl5000_1.enable();
+    sgtl5000_1.inputSelect(AUDIO_INPUT_MIC);
+    sgtl5000_1.volume(0.5);
+    //opusEncoder.setBitrate(16000); // Default is 64000
 }
 
-void loop()
-{
-    encodedFrameQueue.readFrame([&](uint8_t const *data, size_t length) {
-      opusDecoder.putData(data, length); // Write the buffer to the decoder (loopback)
-  });
+void loop() {
 }

@@ -1,29 +1,20 @@
 
+#include <cassert>
+#include <memory>
 #include "input_opus_dec.h"
 #include "Arduino.h"
 #include "AudioStream.h"
 #include "opus.h"
 #include "config.h"
 
-uint8_t AudioInputOpusDec::m_opus_decoder[9224];
-OpusDecoder * AudioInputOpusDec::m_opus_decoder_state = NULL;
+AudioInputOpusDec::AudioInputOpusDec(FrameSource *frameSource) : AudioStream(1, mOutputQueueArray),
+                                                                 mFrameSource(frameSource) {
+    auto decoderStateSize = opus_decoder_get_size(CONFIG_OPUS_CHANNEL_COUNT);
+    Serial.printf("\r\nCheck Decoder size %d = 9224", decoderStateSize);
+    assert(decoderStateSize <= mOpusDecoderData.size());
 
-uint8_t AudioInputOpusDec::decoder_frame_buf_compressed[CONFIG_AUDIO_FRAME_SIZE_BYTES];
-int32_t AudioInputOpusDec::decoder_decompressed_frame_size = AUDIO_BLOCK_SAMPLES;
-int32_t AudioInputOpusDec::decoder_compressed_frame_size = CONFIG_AUDIO_FRAME_SIZE_BYTES;
-bool AudioInputOpusDec::decoderInitialised = false;
-elapsedMicros AudioInputOpusDec::inputPacketPhase;
-
-void AudioInputOpusDec::begin(void)
-{
-	m_opus_decoder_state = (OpusDecoder *)m_opus_decoder;
-	//Serial.printf("\r\nCheck Decoder size %d = 9224", opus_decoder_get_size(1));
-}
-
-void AudioInputOpusDec::initialise(void)
-{
-	opus_decoder_init(m_opus_decoder_state, AUDIO_SAMPLE_RATE, 1);
-	decoderInitialised = true;
+    auto ret = opus_decoder_init(mDecoderState, AUDIO_SAMPLE_RATE, CONFIG_OPUS_CHANNEL_COUNT);
+    assert(ret == OPUS_OK);
 }
 
 // putData() - Returns the time since update() was last called.
@@ -33,28 +24,37 @@ void AudioInputOpusDec::initialise(void)
 // ...
 // phase = opusDecoder.putData(opusBuffer, opusBufSize);   
 // CCM_ANALOG_PLL_AUDIO_DENOM = (denominator + (phase/100) - 100);
-int32_t AudioInputOpusDec::putData(const uint8_t *compressedBuffer, size_t bufferSize)
-{
-	__disable_irq();
-	memcpy(decoder_frame_buf_compressed, compressedBuffer, bufferSize);
-	decoder_compressed_frame_size = bufferSize;
-	__enable_irq();
-	return inputPacketPhase;
-}
 
-void AudioInputOpusDec::update(void)
-{
-	inputPacketPhase = 0;
-	audio_block_t *block;
-	block = allocate();
-	if (block) {
-		if(decoderInitialised)
-		{
-			decoder_decompressed_frame_size = opus_decode(m_opus_decoder_state, decoder_frame_buf_compressed, decoder_compressed_frame_size, block->data, AUDIO_BLOCK_SAMPLES, 0);
-			//Serial.printf(" %d", decoder_decompressed_frame_size);
-		}
-		transmit(block);
-		release(block);
-	}
-}
 
+void AudioInputOpusDec::update() {
+    using UniqueBlockPtr = std::unique_ptr<audio_block_t, decltype(&AudioStream::release)>;
+
+    mFrameSource->readFrame([&](uint8_t const *data, size_t length) {
+        std::array<UniqueBlockPtr, CONFIG_OPUS_CHANNEL_COUNT> blocks; // NOLINT(cppcoreguidelines-pro-type-member-init)
+        for (size_t i = 0; i < CONFIG_OPUS_CHANNEL_COUNT; i++) {
+            blocks[i] = {allocate(), &release};
+            if (!blocks[i]) {
+                Serial.println("block allocation failed");
+                return;
+            }
+        }
+
+        // TODO: handle odd frame sizes
+        auto ret = opus_decode(mDecoderState, data, static_cast<opus_int32>(length), mOutputBuffer.data(),
+                               AUDIO_BLOCK_SAMPLES, 0);
+
+        assert(ret > 0);
+        assert(ret < AUDIO_BLOCK_SAMPLES);
+
+        for (unsigned channelIndex = 0; channelIndex < CONFIG_OPUS_CHANNEL_COUNT; channelIndex++) {
+            for (unsigned sampleIndex = 0; sampleIndex < AUDIO_BLOCK_SAMPLES; sampleIndex++) {
+                blocks[channelIndex]->data[sampleIndex] = mOutputBuffer[sampleIndex * CONFIG_OPUS_CHANNEL_COUNT +
+                                                                        channelIndex];
+            }
+        }
+
+        for (size_t i = 0; i < CONFIG_OPUS_CHANNEL_COUNT; i++) {
+            transmit(blocks[i].get());
+        }
+    });
+}

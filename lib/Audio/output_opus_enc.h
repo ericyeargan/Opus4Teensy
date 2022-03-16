@@ -41,8 +41,6 @@
 
 class AudioOutputOpusEnc : public AudioStream {
 public:
-    static constexpr size_t OPUS_ENCODER_CHANNEL_COUNT = 2;
-
     explicit AudioOutputOpusEnc(FrameSink *frameSink);
 
     void setComplexity(uint8_t complexity);
@@ -60,8 +58,8 @@ private:
 
     std::array<uint8_t, OPUS_ENCODER_SIZE> mOpusEncoderData{};
     OpusEncoder *mEncoderState;
-    audio_block_t *mInputQueueArray[OPUS_ENCODER_CHANNEL_COUNT]{nullptr, nullptr};
-    std::array<int16_t, AUDIO_BLOCK_SAMPLES * OPUS_ENCODER_CHANNEL_COUNT> mInputBuffer{};
+    audio_block_t *mInputQueueArray[CONFIG_OPUS_CHANNEL_COUNT]{nullptr, nullptr};
+    std::array<int16_t, AUDIO_BLOCK_SAMPLES * CONFIG_OPUS_CHANNEL_COUNT> mInputBuffer{};
 };
 
 #endif

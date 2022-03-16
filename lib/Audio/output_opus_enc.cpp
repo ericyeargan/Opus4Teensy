@@ -9,13 +9,13 @@
 #include "config.h"
 
 AudioOutputOpusEnc::AudioOutputOpusEnc(FrameSink *frameSink)
-        : AudioStream(OPUS_ENCODER_CHANNEL_COUNT, mInputQueueArray)
+        : AudioStream(CONFIG_OPUS_CHANNEL_COUNT, mInputQueueArray)
         , mFrameSink(frameSink) {
-    assert(static_cast<size_t>(opus_encoder_get_size(OPUS_ENCODER_CHANNEL_COUNT)) == mOpusEncoderData.size());
+    assert(static_cast<size_t>(opus_encoder_get_size(CONFIG_OPUS_CHANNEL_COUNT)) == mOpusEncoderData.size());
     mEncoderState = reinterpret_cast<OpusEncoder *>(mOpusEncoderData.data());
 
     int ret;
-    ret = opus_encoder_init(mEncoderState, AUDIO_SAMPLE_RATE, OPUS_ENCODER_CHANNEL_COUNT,
+    ret = opus_encoder_init(mEncoderState, AUDIO_SAMPLE_RATE, CONFIG_OPUS_CHANNEL_COUNT,
                             OPUS_APPLICATION_AUDIO);
     assert(ret == OPUS_OK);
     ret = opus_encoder_ctl(mEncoderState, OPUS_SET_BITRATE(CONFIG_OPUS_BITRATE));
@@ -49,6 +49,7 @@ void AudioOutputOpusEnc::update() {
     if (leftInput && rightInput) {
         memcpy_tointerleaveLR(mInputBuffer.data(), leftInput->data, rightInput->data);
 
+        // TODO: split block according to AUDIO_ENCODE_FRAMES_PER_BLOCK
         mFrameSink->writeFrame([this](uint8_t *data) -> size_t {
             auto compressedFrameSize = opus_encode(mEncoderState, mInputBuffer.data(), AUDIO_BLOCK_SAMPLES,
                                                    data,

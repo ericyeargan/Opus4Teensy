@@ -5,9 +5,10 @@
 #include <array>
 
 #include "frame_sink.h"
+#include "frame_source.h"
 
 template<std::size_t QueueLength, std::size_t MaxFrameSize>
-class FrameQueue : public FrameSink {
+class FrameQueue : public FrameSource, public FrameSink{
 public:
     static size_t queueLength() { return QueueLength; }
 
@@ -17,15 +18,14 @@ public:
 
     using ReadFrameFunction = std::function<void(uint8_t const *data, size_t length)>;
 
-    bool readFrame(ReadFrameFunction const &readFunction) {
+    bool readFrame(ReadFrameFunction const &readFunction) override {
         if (mAvailable == 0) {
             return false;
         }
 
-        readFunction(mQueue[mReadIndex].mData.data(), mQueue[mReadIndex].mFrameSize);
-        mReadIndex++;
-        if (mReadIndex == mQueue.size()) {
-            mReadIndex = 0;
+        readFunction(mReadIter->mData.data(), mReadIter->mFrameSize);
+        if (++mReadIter == mQueue.end()) {
+            mReadIter = mQueue.begin();
         }
         mAvailable--;
 
@@ -37,10 +37,9 @@ public:
             return false;
         }
 
-        mQueue[mWriteIndex].mFrameSize = writeFunction(mQueue[mWriteIndex].mData.data());
-        mWriteIndex++;
-        if (mWriteIndex == mQueue.size()) {
-            mWriteIndex = 0;
+        mWriteIter->mFrameSize = writeFunction(mWriteIter->mData.data());
+        if (++mWriteIter == mQueue.end()) {
+            mWriteIter = mQueue.begin();
         }
         mAvailable++;
 
@@ -56,8 +55,11 @@ private:
         size_t mFrameSize{0};
     };
 
-    std::array<Frame, QueueLength> mQueue;
+    using Queue = std::array<Frame, QueueLength>;
+    Queue mQueue;
+
+    typename Queue::iterator mReadIter{mQueue.begin()};
+    typename Queue::iterator mWriteIter{mQueue.begin()};
+
     size_t mAvailable{0};
-    size_t mReadIndex{0};
-    size_t mWriteIndex{0};
 };
