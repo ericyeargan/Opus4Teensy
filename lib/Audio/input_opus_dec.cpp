@@ -9,7 +9,7 @@
 
 AudioInputOpusDec::AudioInputOpusDec(FrameSource *frameSource) : AudioStream(1, mOutputQueueArray),
                                                                  mFrameSource(frameSource) {
-    auto decoderStateSize = opus_decoder_get_size(CONFIG_OPUS_CHANNEL_COUNT);
+    size_t decoderStateSize = opus_decoder_get_size(CONFIG_OPUS_CHANNEL_COUNT);
     Serial.printf("\r\nCheck Decoder size %d = 9224", decoderStateSize);
     assert(decoderStateSize <= mOpusDecoderData.size());
 
@@ -27,12 +27,15 @@ AudioInputOpusDec::AudioInputOpusDec(FrameSource *frameSource) : AudioStream(1, 
 
 
 void AudioInputOpusDec::update() {
-    using UniqueBlockPtr = std::unique_ptr<audio_block_t, decltype(&AudioStream::release)>;
+    using UniqueBlockPtr = std::unique_ptr<audio_block_t, std::function<void(audio_block_t*)>>;
 
     mFrameSource->readFrame([&](uint8_t const *data, size_t length) {
         std::array<UniqueBlockPtr, CONFIG_OPUS_CHANNEL_COUNT> blocks; // NOLINT(cppcoreguidelines-pro-type-member-init)
         for (size_t i = 0; i < CONFIG_OPUS_CHANNEL_COUNT; i++) {
-            blocks[i] = {allocate(), &release};
+            blocks[i] = {allocate(), [](audio_block_t* block) {
+                release(block);
+            }};
+
             if (!blocks[i]) {
                 Serial.println("block allocation failed");
                 return;
