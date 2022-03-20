@@ -3,27 +3,55 @@
 #include <cstdint>
 #include <functional>
 #include <array>
+#include <atomic>
+#include <cassert>
+#include <vector>
 
 #include "frame_sink.h"
 #include "frame_source.h"
 
 template<std::size_t QueueLength, std::size_t MaxFrameSize>
-class FrameQueue : public FrameSource, public FrameSink{
+class FrameQueue : public ConsumableFrameSource, public FrameSink{
 public:
+    FrameQueue() {
+        assert(mAvailable.is_lock_free());
+    }
+
     static size_t queueLength() { return QueueLength; }
 
-    int available() {
+    size_t available() override {
         return mAvailable;
     }
 
-    using ReadFrameFunction = std::function<void(uint8_t const *data, size_t length)>;
+    void registerFrameAvailableCallback(std::function<void()> function) override {
+        mAvailableCallbacks.push_back(function);
+    }
 
-    bool readFrame(ReadFrameFunction const &readFunction) override {
+    bool peekFrame(const ReadFrameFunction &readFunction) const override {
         if (mAvailable == 0) {
             return false;
         }
 
         readFunction(mReadIter->mData.data(), mReadIter->mFrameSize);
+        return true;
+    }
+
+    bool readFrame(ReadFrameFunction const &readFunction) override {
+        if (!peekFrame(readFunction)) {
+            return false;
+        }
+
+        auto consumed = consumeFrame();
+        assert(consumed);
+
+        return true;
+    }
+
+    bool consumeFrame() override {
+        if (mAvailable == 0) {
+            return false;
+        }
+
         if (++mReadIter == mQueue.end()) {
             mReadIter = mQueue.begin();
         }
@@ -37,11 +65,19 @@ public:
             return false;
         }
 
+        bool wasEmpty = mAvailable == 0;
+
         mWriteIter->mFrameSize = writeFunction(mWriteIter->mData.data());
         if (++mWriteIter == mQueue.end()) {
             mWriteIter = mQueue.begin();
         }
         mAvailable++;
+
+        if (wasEmpty) {
+            for (auto const& availableCallback : mAvailableCallbacks) {
+                availableCallback();
+            }
+        }
 
         return true;
     }
@@ -61,5 +97,7 @@ private:
     typename Queue::iterator mReadIter{mQueue.begin()};
     typename Queue::iterator mWriteIter{mQueue.begin()};
 
-    size_t mAvailable{0};
+    std::atomic<size_t> mAvailable{0};
+
+    std::vector<FrameAvailableCallback> mAvailableCallbacks;
 };
