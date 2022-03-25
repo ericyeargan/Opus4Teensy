@@ -10,22 +10,22 @@
 #include <input_opus_dec.h>
 #include <output_opus_enc.h>
 
-AudioControlSGTL5000    sgtl5000_1;
-AudioInputI2S           i2s_in;
+AudioSynthWaveformSine  sig_gen;
 AudioOutputI2S          i2s_out;
 AudioOutputOpusEnc      opusEncoder;  // Create Opus Encoder
 AudioInputOpusDec       opusDecoder;  // Create Opus Decoder
-AudioConnection         patchCord1(i2s_in, 0, opusEncoder, 0);
+AudioConnection         patchCord1(sig_gen, 0, opusEncoder, 0);
 AudioConnection         patchCord2(opusDecoder, 0, i2s_out, 0);
 AudioConnection         patchCord3(opusDecoder, 0, i2s_out, 1);
 
 void setup()
 {  
   AudioMemory(10);
-  sgtl5000_1.enable();  
-  sgtl5000_1.inputSelect(AUDIO_INPUT_MIC);
-  sgtl5000_1.volume(0.5);
-  opusEncoder.initialise(); 
+
+  sig_gen.amplitude(0.01f);
+  sig_gen.frequency(440.0F);
+
+  opusEncoder.initialise();
   //opusEncoder.setBitrate(16000); // Default is 64000
   opusDecoder.initialise();
 }
